@@ -64,7 +64,7 @@ export default function GmailAccountsPage() {
   };
 
   const handleAddAccount = () => {
-    window.location.href = 'http://localhost:5000/api/admin/gmail-account/google/login';
+    window.location.href = 'https://contact-integration-backend-production.up.railway.app/api/admin/gmail-account/google/login';
   };
 
   const tableHeaders = ['Gmail Address', 'Primary Status', 'Actions'];
