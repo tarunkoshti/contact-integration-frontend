@@ -39,12 +39,10 @@ export default function GmailAccountsPage() {
     if (authStatus === 'success') {
       toast.success('Gmail account added successfully!');
       setSearchParams({}, { replace: true });
-      fetchAccounts();
     } else if (authStatus === 'error') {
       const errorMsg = searchParams.get('message') || 'Failed to add Gmail account';
       toast.error(decodeURIComponent(errorMsg));
       setSearchParams({}, { replace: true });
-      fetchAccounts();
     } else {
       fetchAccounts();
     }
