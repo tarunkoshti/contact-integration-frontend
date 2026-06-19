@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Plus, Mail, CheckCircle2, ShieldAlert } from 'lucide-react';
@@ -14,6 +14,7 @@ export default function GmailAccountsPage() {
   const [error, setError] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const processedAuthRef = useRef(null);
 
   const fetchAccounts = async () => {
     setLoading(true);
@@ -36,14 +37,25 @@ export default function GmailAccountsPage() {
 
   useEffect(() => {
     const authStatus = searchParams.get('auth');
-    if (authStatus === 'success') {
-      toast.success('Gmail account added successfully!');
-      setSearchParams({}, { replace: true });
-    } else if (authStatus === 'error') {
-      const errorMsg = searchParams.get('message') || 'Failed to add Gmail account';
-      toast.error(decodeURIComponent(errorMsg));
+    const message = searchParams.get('message') || '';
+    const paramKey = `${authStatus}-${message}`;
+
+    if (authStatus) {
+      // Avoid double-toast execution during StrictMode mount runs
+      if (processedAuthRef.current === paramKey) {
+        return;
+      }
+      processedAuthRef.current = paramKey;
+
+      if (authStatus === 'success') {
+        toast.success('Gmail account added successfully!');
+      } else if (authStatus === 'error') {
+        toast.error(decodeURIComponent(message) || 'Failed to add Gmail account');
+      }
       setSearchParams({}, { replace: true });
     } else {
+      // Clear ref and load database rows normally when parameters are clean
+      processedAuthRef.current = null;
       fetchAccounts();
     }
   }, [searchParams]);
