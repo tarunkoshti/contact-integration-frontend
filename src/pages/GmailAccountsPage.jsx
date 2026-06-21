@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Plus, Mail, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { gmailService } from '../services/gmail.service';
+import { projectService } from '../services/project.service';
+import CustomSelect from '../components/CustomSelect';
 import PageHeader from '../components/PageHeader';
 import Table from '../components/Table';
 import Button from '../components/Button';
@@ -15,6 +17,14 @@ export default function GmailAccountsPage() {
   const [updatingId, setUpdatingId] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const processedAuthRef = useRef(null);
+
+  // New state variables for project selection modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState(null);
+  const [validationError, setValidationError] = useState('');
 
   const fetchAccounts = async () => {
     setLoading(true);
@@ -75,11 +85,37 @@ export default function GmailAccountsPage() {
     }
   };
 
-  const handleAddAccount = () => {
-    window.location.href = 'https://contact-integration-backend-production.up.railway.app/api/admin/gmail-account/google/login';
+  const openModal = async () => {
+    setIsModalOpen(true);
+    setModalLoading(true);
+    setModalError(null);
+    setValidationError('');
+    setSelectedProjectId('');
+    try {
+      const response = await projectService.fetchProjects();
+      if (response && response.data) {
+        setProjects(response.data);
+      } else {
+        setProjects([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setModalError(err.message || 'Failed to fetch projects.');
+    } finally {
+      setModalLoading(false);
+    }
   };
 
-  const tableHeaders = ['Gmail Address', 'Primary Status', 'Actions'];
+  const handleContinueAdd = () => {
+    if (!selectedProjectId) {
+      setValidationError('Please select a project before continuing.');
+      return;
+    }
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.location.href = `${apiUrl}/api/gmail-account/google/login?projectId=${selectedProjectId}`;
+  };
+
+  const tableHeaders = ['Gmail Address', 'Project Name', 'Primary Status', 'Actions'];
 
   return (
     <div className="space-y-6">
@@ -88,7 +124,7 @@ export default function GmailAccountsPage() {
         subtitle="Manage integrated Gmail accounts and select the primary account for Google Contacts Sync."
         actions={
           <Button
-            onClick={handleAddAccount}
+            onClick={openModal}
             icon={Plus}
           >
             Add Gmail Account
@@ -137,6 +173,10 @@ export default function GmailAccountsPage() {
                   </div>
                 </td>
 
+                <td className="px-6 py-4 text-sm text-slate-600 capitalize">
+                  {account.project_name || 'N/A'}
+                </td>
+
                 <td className="px-6 py-4">
                   {isPrimary ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -170,6 +210,56 @@ export default function GmailAccountsPage() {
             );
           })}
         </Table>
+      )}
+      {/* Project Selection Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-md w-full transform transition-all">
+            <h3 className="text-lg font-bold text-slate-800">Select Project</h3>
+            <p className="text-sm text-slate-500 mt-1">
+              Select a project to associate with this Gmail account before proceeding.
+            </p>
+
+            <div className="mt-4">
+              {modalLoading ? (
+                <div className="flex items-center gap-2 py-2 text-sm text-slate-500">
+                  <span className="animate-spin h-4 w-4 border-2 border-sky-500 border-t-transparent rounded-full" />
+                  Loading projects...
+                </div>
+              ) : modalError ? (
+                <div className="text-sm text-rose-600 py-2">{modalError}</div>
+              ) : (
+                <CustomSelect
+                  label="Project"
+                  value={selectedProjectId}
+                  options={projects}
+                  onChange={(val) => {
+                    setSelectedProjectId(val);
+                    setValidationError('');
+                  }}
+                  placeholder="-- Select a Project --"
+                  error={validationError}
+                  required
+                />
+              )}
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleContinueAdd}
+                disabled={modalLoading || !!modalError}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

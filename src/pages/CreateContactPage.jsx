@@ -1,30 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { UserCheck, UserPlus, Phone, User } from 'lucide-react';
+import { UserCheck, UserPlus, Phone, User, Briefcase } from 'lucide-react';
 import { contactService } from '../services/contact.service';
+import { projectService } from '../services/project.service';
 import PageHeader from '../components/PageHeader';
 import FormInput from '../components/FormInput';
 import Button from '../components/Button';
+import CustomSelect from '../components/CustomSelect';
 
 export default function CreateContactPage() {
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await projectService.fetchProjects();
+        if (response && response.data) {
+          setProjects(response.data);
+        }
+      } catch (err) {
+        console.error('Failed to load projects:', err);
+        toast.error('Failed to load projects. Please try again.');
+      }
+    };
+    fetchProjects();
+  }, []);
+
   const validateForm = () => {
     const newErrors = {};
+    if (!selectedProjectId) {
+      newErrors.projectId = 'Project selection is required';
+    }
     if (!name.trim()) {
       newErrors.name = 'Name is required';
     }
-    if (!mobile.trim()) {
-      newErrors.mobile = 'Mobile number is required';
-    } else {
-      const phoneRegex = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$/;
-      if (!phoneRegex.test(mobile)) {
-        newErrors.mobile = 'Please enter a valid phone number';
-      }
+
+    let cleanMobile = mobile.trim();
+    if (cleanMobile.startsWith('+91')) {
+      cleanMobile = cleanMobile.slice(3);
     }
+    cleanMobile = cleanMobile.replace(/\D/g, '');
+
+    if (!cleanMobile) {
+      newErrors.mobile = 'Mobile number is required';
+    } else if (cleanMobile.length !== 10) {
+      newErrors.mobile = 'Please enter a valid 10-digit mobile number';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -33,17 +60,25 @@ export default function CreateContactPage() {
     e.preventDefault();
     if (!validateForm()) return;
 
+    let cleanMobile = mobile.trim();
+    if (cleanMobile.startsWith('+91')) {
+      cleanMobile = cleanMobile.slice(3);
+    }
+    cleanMobile = cleanMobile.replace(/\D/g, '');
+
     setIsSubmitting(true);
     const toastId = toast.loading('Saving contact to integration server...');
     try {
       await contactService.createContact({
         name: name.trim(),
-        mobile: mobile.trim(),
+        mobile: cleanMobile,
+        projectId: selectedProjectId,
       });
 
       toast.success('Contact created successfully!', { id: toastId });
       setName('');
       setMobile('');
+      setSelectedProjectId('');
       setErrors({});
     } catch (err) {
       console.error(err);
@@ -72,6 +107,22 @@ export default function CreateContactPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <CustomSelect
+              label="Project"
+              value={selectedProjectId}
+              options={projects}
+              onChange={(val) => {
+                setSelectedProjectId(val);
+                if (errors.projectId) {
+                  setErrors((prev) => ({ ...prev, projectId: '' }));
+                }
+              }}
+              placeholder="-- Select a Project --"
+              error={errors.projectId}
+              required
+              icon={Briefcase}
+            />
+
             <FormInput
               label="Contact Name"
               id="name"
