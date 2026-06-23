@@ -1,9 +1,9 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Mail, UserPlus, ShieldCheck, LogOut, FolderPlus } from 'lucide-react';
+import { Mail, UserPlus, ShieldCheck, LogOut, FolderPlus, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, setIsOpen }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -14,12 +14,12 @@ export default function Sidebar() {
 
   const links = [
     {
-      to: '/create-project',
+      to: '/',
       label: 'Create Project',
       icon: FolderPlus,
     },
     {
-      to: '/',
+      to: '/gmail-accounts',
       label: 'Gmail Accounts',
       icon: Mail,
     },
@@ -31,14 +31,27 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 border-r border-slate-200 bg-slate-50 flex flex-col shrink-0 min-h-screen">
-      <div className="h-16 flex items-center px-6 border-b border-slate-200 gap-2.5">
-        <div className="bg-sky-100 border border-sky-200 p-1.5 rounded-lg text-sky-600">
-          <ShieldCheck className="w-5 h-5" />
+    <aside
+      className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-slate-200 bg-slate-50 flex flex-col shrink-0 min-h-screen transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}
+    >
+      <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200">
+        <div className="flex items-center gap-2.5">
+          <div className="bg-sky-100 border border-sky-200 p-1.5 rounded-lg text-sky-600">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <span className="font-bold text-slate-800 tracking-wider text-sm uppercase">
+            Contacts Integrator
+          </span>
         </div>
-        <span className="font-bold text-slate-800 tracking-wider text-sm uppercase">
-          Contacts Integrator
-        </span>
+        {/* Mobile Close Button */}
+        <button
+          onClick={() => setIsOpen(false)}
+          className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-200/50 hover:text-slate-700 cursor-pointer flex items-center justify-center focus:outline-none"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       <nav className="flex-1 px-4 py-6 space-y-1.5">
@@ -48,7 +61,8 @@ export default function Sidebar() {
             <NavLink
               key={link.to}
               to={link.to}
-              end={link.to === '/'}
+              end={true}
+              onClick={() => setIsOpen(false)} // Close sidebar drawer when clicking a link on mobile/tablet
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 group cursor-pointer ${isActive
                   ? 'bg-sky-100/80 text-sky-700 border border-sky-200/50 shadow-xs'

@@ -64,8 +64,8 @@ export default function App() {
           {/* Protected Pages */}
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
-              <Route path="/" element={<GmailAccountsPage />} />
-              <Route path="/create-project" element={<CreateProjectPage />} />
+              <Route path="/" element={<CreateProjectPage />} />
+              <Route path="/gmail-accounts" element={<GmailAccountsPage />} />
               <Route path="/create-contact" element={<CreateContactPage />} />
             </Route>
           </Route>
